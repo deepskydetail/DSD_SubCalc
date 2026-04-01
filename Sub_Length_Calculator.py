@@ -45,7 +45,7 @@ matplotlib.use("TkAgg")
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Pure-numpy ex-Gaussian MLE  (no scipy)
@@ -226,23 +226,30 @@ def run_analysis(bias_path, light_path, bit_depth=16,
 
     total_noise  = float(np.sqrt(sigma_eg ** 2 + tau ** 2))
     rel_sn       = float(np.sqrt(max(sigma_eg ** 2 - rel_rn ** 2, 0.0)))
-    rel_sn2      = float(np.sqrt(max(light_m - bias_m, 0.0)))
+    rel_sn2      = np.sqrt((light_m - bias_m)* gain) / gain #float(np.sqrt(max(light_m - bias_m, 0.0)))
 
     adu_added    = light_m - bias_m
     e_added      = adu_added * gain
     adu_s        = (rel_sn ** 2) / duration if duration else float("nan")
     adu_s2       = adu_added / duration     if duration else float("nan")
 
-    desired      = swamp * rel_rn ** 2
-    min_sub      = desired / adu_s  if adu_s  else float("nan")
-    min_sub2     = desired / adu_s2 if adu_s2 else float("nan")
+    #desired      = swamp * rel_rn ** 2
+    #min_sub      = desired / adu_s  if adu_s  else float("nan")
+    #min_sub2     = desired / adu_s2 if adu_s2 else float("nan")
+    
 
     true_rn  = rel_rn  * gain
     true_sn  = rel_sn  * gain
     true_sn2 = rel_sn2 * gain
     true_tot = total_noise * gain
-    e_s      = adu_s * gain
-
+    e_s      = adu_s2 * gain
+    
+    #1.0.1
+    desired_e = swamp * true_rn ** 2  # corresponds to DesiredSignal_e in R
+    min_sub  = desired_e / (true_sn ** 2 / duration) if duration else float("nan")
+    min_sub2 = desired_e / (true_sn2 ** 2 / duration) if duration else float("nan")
+    #end 1.0.1
+    
     swamp_est  = (rel_sn ** 2) / (rel_rn ** 2) if rel_rn else float("nan")
     ideal_cam  = float("nan")
     ideal_cam2 = float("nan")
@@ -263,7 +270,7 @@ def run_analysis(bias_path, light_path, bit_depth=16,
         rel_rn=rel_rn, rel_sn=rel_sn, rel_sn2=rel_sn2,
         true_rn=true_rn, true_sn=true_sn, true_sn2=true_sn2, true_tot=true_tot,
         total_noise=total_noise, adu_added=adu_added, e_added=e_added,
-        adu_s=adu_s, e_s=e_s, min_sub=min_sub, min_sub2=min_sub2,
+        adu_s=adu_s2, e_s=e_s, min_sub=min_sub, min_sub2=min_sub2,
         swamp_est=swamp_est, ideal_cam=ideal_cam, ideal_cam2=ideal_cam2,
         seg_x1=seg_x1, seg_x2=seg_x2, multfactor=multfactor,
     )
